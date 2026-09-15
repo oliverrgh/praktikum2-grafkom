@@ -11,7 +11,10 @@
   --border-bright: rgba(212, 175, 55, 0.45);
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, sans-serif;
+}
 
 body {
   display: flex;
@@ -21,7 +24,6 @@ body {
   background: var(--bg-main);
   background-image: radial-gradient(circle at 12% 20%, rgba(212,175,55,.06), transparent 35%), radial-gradient(circle at 90% 80%, rgba(212,175,55,.04), transparent 36%);
   color: var(--text-main);
-  font-family: "Segoe UI", Tahoma, sans-serif;
 }
 
 .sidebar {
@@ -62,7 +64,7 @@ header > p { margin: 0; color: var(--text-muted); font-size: 15px; letter-spacin
 .avatar { display: grid; width: 54px; height: 54px; flex: 0 0 54px; place-items: center; border: 2px solid var(--gold); border-radius: 50%; color: var(--gold-light); font-size: 17px; font-weight: 800; }
 .team-info { display: flex; flex-direction: column; gap: 7px; }
 .name { font-weight: 700; }
-.nim { width: fit-content; padding: 3px 8px; border-radius: 5px; background: #d4af371a; color: var(--gold); font: 600 12px monospace; }
+.nim { width: fit-content; padding: 3px 8px; border-radius: 5px; background: #d4af371a; color: var(--gold); font: 600 12px 'Courier New', Courier, monospace; }
 
 .controls-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px 24px; padding: 20px 25px; border-radius: 12px; }
 .control-group { display: flex; flex: 1; align-items: center; gap: 14px; }
@@ -104,7 +106,7 @@ canvas { display: block; width: min(800px, 100%); height: auto; aspect-ratio: 4 
 .section-header h2 { margin: 0; font-size: 25px; }
 .instructions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 25px; }
 .instructions-grid p, .report-text, .checklist p { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.7; }
-kbd, code { padding: 3px 7px; border: 1px solid #d4af3733; border-radius: 4px; background: #d4af3714; color: var(--gold-light); font: 12px monospace; }
+kbd, code { padding: 3px 7px; border: 1px solid #d4af3733; border-radius: 4px; background: #d4af3714; color: var(--gold-light); font: 12px 'Consolas', monospace; }
 .readme-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; }
 .readme-title { margin: 0 0 16px; color: var(--gold); font-size: 17px; }
 .checklist { display: flex; flex-direction: column; gap: 12px; }
