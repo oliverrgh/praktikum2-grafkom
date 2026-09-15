@@ -10,10 +10,10 @@
   <aside class="sidebar">
     <h2>Modul Praktikum</h2>
     <nav class="nav-list" aria-label="Navigasi modul">
-      <a href="../index.html" class="nav-item">Beranda Portal</a>
-      <a href="../Week01/praktikum1.html" class="nav-item">Dasar Canvas</a>
-      <a href="praktikum2.html" class="nav-item active">WebGL Primitives</a>
-      <a href="#" class="nav-item locked">Transformasi Objek</a>
+      <a href="#" class="nav-item">Beranda Portal</a>
+      <a href="#" class="nav-item">Dasar Canvas</a>
+      <a href="index.html" class="nav-item active">WebGL Primitives</a>
+      <a href="#" class="nav-item locked">TBA</a>
     </nav>
     <div class="sidebar-note">
       <span class="note-dot"></span>
@@ -42,12 +42,29 @@
 
       <section class="controls-bar" aria-label="Kontrol playground">
         <div class="control-group">
-          <label for="shapeSelect">Bentuk Spawn</label>
+          <label for="shapeSelect">Bentuk Player</label>
           <select id="shapeSelect">
             <option value="TRIANGLES">Triangle</option>
             <option value="RECTANGLE">Rectangle</option>
             <option value="LINE_LOOP">Line shape</option>
+            <option value="POINTS">Points</option>
           </select>
+        </div>
+        <div class="control-group">
+          <label for="drawModeSelect">Draw Mode Player</label>
+          <select id="drawModeSelect">
+            <option value="TRIANGLES">TRIANGLES</option>
+            <option value="RECTANGLE">RECTANGLE</option>
+            <option value="LINE_STRIP">LINE_STRIP</option>
+            <option value="POINTS">POINTS</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <div class="range-heading">
+            <label for="speedSelector">Movement speed</label>
+            <strong id="speedValue">0.35</strong>
+          </div>
+          <input id="speedSelector" type="range" min="0.05" max="1" step="0.01" value="0.35">
         </div>
         <div class="control-group color-controls">
           <span class="control-label">Warna</span>
@@ -56,6 +73,28 @@
           <button class="swatch blue" aria-label="Warna biru" onclick="setCurrentColor(0,0,1,1)"></button>
           <button class="swatch cyan" aria-label="Warna cyan" onclick="setCurrentColor(0,1,1,1)"></button>
           <button class="random" onclick="setRandomColor()">Random</button>
+        </div>
+        <div class="control-group">
+          <label for="fpsSelector">Batas FPS</label>
+          <select id="fpsSelector">
+            <option value="0">Max</option>
+            <option value="60">60 FPS</option>
+            <option value="30">30 FPS</option>
+            <option value="15">15 FPS</option>
+            <option value="5">5 FPS</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="trailSelector">Trail</label>
+          <select id="trailSelector">
+            <option value="none">Tidak ada</option>
+            <option value="fading">Memudar</option>
+            <option value="permanent">Permanen</option>
+          </select>
+        </div>
+        <div class="control-group action-controls">
+          <button id="clearSpawned" class="random" type="button">Clear spawned</button>
+          <label class="toggle-label"><input id="patternToggle" type="checkbox" checked> Pattern grid</label>
         </div>
       </section>
 
@@ -71,9 +110,9 @@
 
       <section class="hud-grid" aria-label="Status render">
         <div class="hud-card"><span>FPS</span><strong id="hud-fps">0</strong></div>
-        <div class="hud-card"><span>Primitive</span><strong id="hud-prim">11</strong></div>
+        <div class="hud-card"><span>Primitive</span><strong id="hud-prim">12</strong></div>
         <div class="hud-card"><span>Mouse NDC</span><strong id="hud-mouse">(0.00, 0.00)</strong></div>
-        <div class="hud-card"><span>Spawn Mode</span><strong id="hud-mode">TRIANGLES</strong></div>
+        <div class="hud-card"><span>Draw Mode</span><strong id="hud-mode">TRIANGLES</strong></div>
       </section>
 
       <section class="report-section">
