@@ -1,11 +1,10 @@
-const canvas = document.getElementById("glCanvas");
-const gl = canvas.getContext("webgl2", {
-  preserveDrawingBuffer: true
-});
-
-if (!gl) {
-  throw new Error("WebGL2 tidak tersedia di browser ini.");
-}
+let canvas;
+let gl;
+let program;
+let vao;
+let buffer;
+let positionLocation;
+let colorLocation;
 
 function createShader(type, source) {
   const shader = gl.createShader(type);
@@ -21,10 +20,51 @@ function createShader(type, source) {
   return shader;
 }
 
-function createProgram(vertexSource, fragmentSource) {
+function initializeWebGL() {
+  canvas = document.getElementById("glCanvas");
+  gl = canvas.getContext("webgl2", {
+    preserveDrawingBuffer: true
+  });
+
+  if (!gl) {
+    throw new Error("WebGL2 tidak tersedia di browser ini.");
+  }
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+}
+
+function createShaders() {
+  return {
+    vertex: createShader(
+      gl.VERTEX_SHADER,
+      `#version 300 es
+       in vec2 a_position;
+       in vec4 a_color;
+       out vec4 v_color;
+       void main() {
+         gl_Position = vec4(a_position, 0.0, 1.0);
+         gl_PointSize = 8.0;
+         v_color = a_color;
+       }`
+    ),
+    fragment: createShader(
+      gl.FRAGMENT_SHADER,
+      `#version 300 es
+       precision mediump float;
+       in vec4 v_color;
+       out vec4 outColor;
+       void main() {
+         outColor = v_color;
+       }`
+    )
+  };
+}
+
+function createProgram(shaders) {
   const program = gl.createProgram();
-  gl.attachShader(program, createShader(gl.VERTEX_SHADER, vertexSource));
-  gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fragmentSource));
+  gl.attachShader(program, shaders.vertex);
+  gl.attachShader(program, shaders.fragment);
   gl.linkProgram(program);
 
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
@@ -36,39 +76,30 @@ function createProgram(vertexSource, fragmentSource) {
   return program;
 }
 
-const program = createProgram(
-  `#version 300 es
-   in vec2 a_position;
-   in vec4 a_color;
-   out vec4 v_color;
-   void main() {
-     gl_Position = vec4(a_position, 0.0, 1.0);
-     gl_PointSize = 8.0;
-     v_color = a_color;
-   }`,
-  `#version 300 es
-   precision mediump float;
-   in vec4 v_color;
-   out vec4 outColor;
-   void main() {
-     outColor = v_color;
-   }`
-);
+function createBuffers() {
+  vao = gl.createVertexArray();
+  buffer = gl.createBuffer();
+}
 
+function setupAttributes() {
+  positionLocation = gl.getAttribLocation(program, "a_position");
+  colorLocation = gl.getAttribLocation(program, "a_color");
+
+  const vertexSize = 6 * Float32Array.BYTES_PER_ELEMENT;
+  gl.bindVertexArray(vao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.enableVertexAttribArray(positionLocation);
+  gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, vertexSize, 0);
+  gl.enableVertexAttribArray(colorLocation);
+  gl.vertexAttribPointer(colorLocation, 4, gl.FLOAT, false, vertexSize, 2 * Float32Array.BYTES_PER_ELEMENT);
+}
+
+initializeWebGL();
+const shaders = createShaders();
+program = createProgram(shaders);
 gl.useProgram(program);
-
-const vao = gl.createVertexArray();
-const buffer = gl.createBuffer();
-const positionLocation = gl.getAttribLocation(program, "a_position");
-const colorLocation = gl.getAttribLocation(program, "a_color");
-
-const vertexSize = 6 * Float32Array.BYTES_PER_ELEMENT;
-gl.bindVertexArray(vao);
-gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-gl.enableVertexAttribArray(positionLocation);
-gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, vertexSize, 0);
-gl.enableVertexAttribArray(colorLocation);
-gl.vertexAttribPointer(colorLocation, 4, gl.FLOAT, false, vertexSize, 2 * Float32Array.BYTES_PER_ELEMENT);
+createBuffers();
+setupAttributes();
 
 const hudFps = document.getElementById("hud-fps");
 const hudPrimitive = document.getElementById("hud-prim");
@@ -106,8 +137,9 @@ let activeDrawMode = gl.TRIANGLES;
 let speedMultiplier = 0.35;
 let patternVisible = true;
 
-gl.enable(gl.BLEND);
-gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+function getActiveDrawMode() {
+  return drawModeSelect.value === "RECTANGLE" ? gl.TRIANGLES : gl[drawModeSelect.value];
+}
 
 function vertex(x, y, color) {
   return [x, y, ...color];
@@ -256,6 +288,13 @@ function updateMoving() {
   rebuildMovingTriangles();
 }
 
+function update() {
+  if (!paused) {
+    updatePlayer();
+    updateMoving();
+  }
+}
+
 function drawObject(object) {
   gl.bufferData(gl.ARRAY_BUFFER, object.vertices, gl.DYNAMIC_DRAW);
   gl.drawArrays(object.mode, 0, object.vertices.length / 6);
@@ -266,7 +305,7 @@ function drawPlayer() {
   const brighter = [Math.min(player.color[0] * 1.25, 1), Math.min(player.color[1] * 1.25, 1), Math.min(player.color[2] * 1.25, 1), 1];
   const playerColors = [player.color, brighter, darker];
 
-  if (shapeSelect.value === "RECTANGLE") {
+  if (shapeSelect.value === "RECTANGLE" || drawModeSelect.value === "RECTANGLE") {
     drawObject(makeRectangle(player.x, player.y, player.size * 2.2, player.size * 1.5, player.color));
   } else if (shapeSelect.value === "LINE_LOOP") {
     drawObject(makeZigzagLine(player.x, player.y, player.size * 1.7, player.size * 1.5, [
@@ -294,32 +333,65 @@ function spawnAtMouse() {
   const size = 0.09;
   let object;
 
-  if (shapeSelect.value === "TRIANGLES") {
+  if (shapeSelect.value === "TRIANGLES" && drawModeSelect.value !== "RECTANGLE") {
     object = makeTriangle(mouse.x, mouse.y, size, [
       selectedColor,
       colors[(colorIndex + 1) % colors.length],
       colors[(colorIndex + 2) % colors.length]
     ]);
-  } else if (shapeSelect.value === "RECTANGLE") {
+  } else if (shapeSelect.value === "RECTANGLE" || drawModeSelect.value === "RECTANGLE") {
     object = makeRectangle(mouse.x, mouse.y, size * 2.1, size * 1.5, selectedColor);
   } else if (shapeSelect.value === "POINTS") {
     object = {
-      mode: gl.POINTS,
-      vertices: new Float32Array(vertex(mouse.x, mouse.y, selectedColor))
+      mode: activeDrawMode,
+      vertices: new Float32Array([
+        ...vertex(mouse.x, mouse.y + size, selectedColor),
+        ...vertex(mouse.x - size, mouse.y - size, selectedColor),
+        ...vertex(mouse.x + size, mouse.y - size, selectedColor)
+      ])
     };
   } else {
     object = makeLineShape(mouse.x, mouse.y, size, selectedColor);
   }
 
-  if (shapeSelect.value !== "POINTS") {
-    object.mode = activeDrawMode === gl.TRIANGLES && shapeSelect.value === "LINE_LOOP"
-      ? gl.LINE_LOOP
-      : activeDrawMode;
-  }
+  object.mode = getActiveDrawMode();
   spawnedObjects.push(object);
 
   selectedColor = colors[(colorIndex + 1) % colors.length];
   colorIndex = (colorIndex + 1) % colors.length;
+}
+
+function draw() {
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clearColor(...backgroundColor);
+  gl.bindVertexArray(vao);
+
+  if (trailMode === "none" || needsClear) {
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    needsClear = false;
+  } else if (trailMode === "fading") {
+    drawObject(makeRectangle(0, 0, 2, 2, [
+      backgroundColor[0],
+      backgroundColor[1],
+      backgroundColor[2],
+      0.12
+    ]));
+  }
+
+  if (patternVisible) drawObject(patternGrid);
+  drawObject(triangle);
+  drawObject(rectangle);
+  drawObject(lineShape);
+  drawObject(diamondLine);
+  for (const movingTriangle of movingTriangles) drawObject(movingTriangle.object);
+  drawPlayer();
+  drawObject(makeCursorSquare(mouse.x, mouse.y));
+  for (const object of spawnedObjects) drawObject(object);
+
+  hudFps.textContent = String(fps);
+  hudPrimitive.textContent = String(5 + movingTriangles.length + 2 + spawnedObjects.length + (patternVisible ? 1 : 0));
+  pauseText.textContent = paused ? "PAUSED" : "RUNNING";
+  pauseText.classList.toggle("is-paused", paused);
 }
 
 function reset() {
@@ -348,15 +420,11 @@ window.setCurrentColor = (r, g, b, a) => setColor([r, g, b, a]);
 window.setRandomColor = () => setColor([Math.random(), Math.random(), Math.random(), 1]);
 
 shapeSelect.addEventListener("change", () => {
-  if (shapeSelect.value === "POINTS") {
-    activeDrawMode = gl.POINTS;
-    drawModeSelect.value = "POINTS";
-  }
   hudMode.textContent = drawModeSelect.value;
 });
 
 drawModeSelect.addEventListener("change", () => {
-  activeDrawMode = gl[drawModeSelect.value];
+  activeDrawMode = getActiveDrawMode();
   hudMode.textContent = drawModeSelect.value;
 });
 
@@ -431,39 +499,8 @@ function render(time) {
   previousTime = time;
   if (delta > 0) fps = Math.round(1000 / delta);
 
-  if (!paused) {
-    updatePlayer();
-    updateMoving();
-  }
-
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  gl.clearColor(...backgroundColor);
-  gl.bindVertexArray(vao);
-  if (trailMode === "none" || needsClear) {
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    needsClear = false;
-  } else if (trailMode === "fading") {
-    drawObject(makeRectangle(0, 0, 2, 2, [
-      backgroundColor[0],
-      backgroundColor[1],
-      backgroundColor[2],
-      0.12
-    ]));
-  }
-  if (patternVisible) drawObject(patternGrid);
-  drawObject(triangle);
-  drawObject(rectangle);
-  drawObject(lineShape);
-  drawObject(diamondLine);
-  for (const movingTriangle of movingTriangles) drawObject(movingTriangle.object);
-  drawPlayer();
-  drawObject(makeCursorSquare(mouse.x, mouse.y));
-  for (const object of spawnedObjects) drawObject(object);
-
-  hudFps.textContent = String(fps);
-  hudPrimitive.textContent = String(5 + movingTriangles.length + 2 + spawnedObjects.length + (patternVisible ? 1 : 0));
-  pauseText.textContent = paused ? "PAUSED" : "RUNNING";
-  pauseText.classList.toggle("is-paused", paused);
+  update();
+  draw();
 
   requestAnimationFrame(render);
 }
